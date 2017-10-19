@@ -1,0 +1,12 @@
+{
+  "name": "chalk",
+  "version": "1.0.0",
+  "description": "Automation library for Blackboard",
+  "main": "index.js",
+  "repository": "https://tutturen@github.com/tutturen/chalk.git",
+  "author": "Thor Even Tutturen <thor@bustbyte.no>",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^0.12.0"
+  }
+}
