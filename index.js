@@ -38,11 +38,13 @@ async function init() {
 
   for (let row of rows) {
     if (!isLastAttempt(row)) {
-      console.log('Skipping old attempt > ', row.attempt);
+      console.log(`Skipping old attempt > ${row.itemName} > ${row.attempt}`);
       continue;
     }
     if (shouldIgnore(row)) {
-      console.log('Skipping project delivery >', row.attempt);
+      console.log(
+        `Skipping project delivery > ${row.itemName} > ${row.attempt}`,
+      );
       continue;
     }
     const newTab = await browser.newPage();
