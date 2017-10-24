@@ -7,6 +7,10 @@
   "author": "Thor Even Tutturen <thor@bustbyte.no>",
   "license": "MIT",
   "dependencies": {
+    "@3846masa/axios-cookiejar-support": "^0.1.1",
+    "axios": "^0.17.0",
+    "jsonfile": "^4.0.0",
+    "mkdirp": "^0.5.1",
     "puppeteer": "^0.12.0"
   }
 }
