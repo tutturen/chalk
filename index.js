@@ -1,48 +1,20 @@
 const puppeteer = require('puppeteer');
+const login = require('./src/login');
 const downloadAssignment = require('./src/downloadAssignment');
+const isLastAttempt = require('./src/isLastAttempt');
+const shouldIgnore = require('./src/shouldIgnore');
 
 const NEEDS_GRADING =
   'https://ntnu.blackboard.com/webapps/gradebook/do/instructor/viewNeedsGrading?sortCol=attemptDate&sortDir=ASCENDING&showAll=true&editPaging=false&course_id=_3692_1&startIndex=0';
 const USERNAME = '';
 const PASSWORD = '';
 
-function isLastAttempt(row) {
-  if (!row.attempt.includes('(Attempt')) {
-    return true;
-  }
-
-  const nr = row.attempt.split('(Attempt ')[1].split(' of')[0];
-  const total = row.attempt.split(' of ')[1].split(')')[0];
-  return nr === total;
-}
-
-function shouldIgnore(row) {
-  if (row.itemName.includes('P0 Getting')) {
-    return true;
-  }
-  if (row.itemName.includes('P2') || row.itemName.includes('P3')) {
-    return true;
-  }
-  return false;
-}
-
 async function init() {
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
-
   await page.setViewport({ width: 1500, height: 1500 });
-  await page.goto('http://iblack.sexy');
 
-  //await page.screenshot({ path: 'screenshot.png ' });
-  await page.select('select#org', 'ntnu.no');
-  await page.click('#submit');
-
-  await page.waitForSelector('#username');
-  await page.type('#username', USERNAME);
-  await page.type('#password', PASSWORD);
-  await page.click('input.submit');
-
-  await page.waitForSelector('#anonymous_element_8');
+  await login(page, USERNAME, PASSWORD);
 
   await page.goto(NEEDS_GRADING);
 
@@ -50,7 +22,6 @@ async function init() {
 
   const rows = await page.$$eval('#listContainer_databody > tr', rows =>
     rows.map((row, index) => {
-      // Check if we got this
       const info = {
         index,
         fullText: row.innerText.trim(),
@@ -66,11 +37,14 @@ async function init() {
   );
 
   for (let row of rows) {
-    if (!isLastAttempt(row) || shouldIgnore(row)) {
-      console.log('Skipping >', row.attempt);
+    if (!isLastAttempt(row)) {
+      console.log('Skipping old attempt > ', row.attempt);
       continue;
     }
-    const userKey = row.user.replace(/ /g, '');
+    if (shouldIgnore(row)) {
+      console.log('Skipping project delivery >', row.attempt);
+      continue;
+    }
     const newTab = await browser.newPage();
     await newTab.setViewport({ width: 1500, height: 1500 });
     await newTab.goto(NEEDS_GRADING);
@@ -78,7 +52,7 @@ async function init() {
       `#listContainer_databody > tr:nth-child(${row.index + 1}) > th > a`,
     );
     await downloadAssignment(newTab, row);
-    newTab.close();
+    await newTab.close();
   }
 
   await browser.close();
