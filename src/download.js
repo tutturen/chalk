@@ -13,8 +13,6 @@ function download(
   zipName = 'lol.zip',
 ) {
   mkdirp(outputFolder, function(err) {
-    console.log('filePath:', outputFolder);
-    console.log('fileName:', zipName);
     const fullPath = outputFolder + '/' + zipName;
 
     if (err) {
@@ -40,7 +38,7 @@ function download(
       })
       .then(result => {
         fs.writeFileSync(fullPath, result.data);
-        console.log('DONE DOWNLOADING');
+        console.log('Downloaded > ' + fullPath);
         return fullPath;
       });
   });

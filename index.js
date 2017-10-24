@@ -1,37 +1,10 @@
 const puppeteer = require('puppeteer');
 const downloadAssignment = require('./src/downloadAssignment');
-const jsonfile = require('jsonfile');
 
-const JSON_FILE = './data.json';
-
+const NEEDS_GRADING =
+  'https://ntnu.blackboard.com/webapps/gradebook/do/instructor/viewNeedsGrading?sortCol=attemptDate&sortDir=ASCENDING&showAll=true&editPaging=false&course_id=_3692_1&startIndex=0';
 const USERNAME = '';
 const PASSWORD = '';
-
-async function readJsonAsync(path) {
-  try {
-    return new Promise((resolve, reject) => {
-      jsonfile.readFile(path, (err, obj) => {
-        if (err) {
-          return Promise.resolve({});
-        }
-        resolve(obj);
-      });
-    });
-  } catch (e) {
-    return Promise.resolve({});
-  }
-}
-
-async function writeJsonAsync(path, data) {
-  return new Promise((resolve, reject) => {
-    jsonfile.writeFile(path, data, err => {
-      if (err) {
-        reject(err);
-      }
-      resolve();
-    });
-  });
-}
 
 function isLastAttempt(row) {
   if (!row.attempt.includes('(Attempt')) {
@@ -40,7 +13,6 @@ function isLastAttempt(row) {
 
   const nr = row.attempt.split('(Attempt ')[1].split(' of')[0];
   const total = row.attempt.split(' of ')[1].split(')')[0];
-  console.log(nr, total);
   return nr === total;
 }
 
@@ -72,9 +44,7 @@ async function init() {
 
   await page.waitForSelector('#anonymous_element_8');
 
-  await page.goto(
-    'https://ntnu.blackboard.com/webapps/gradebook/do/instructor/viewNeedsGrading?sortCol=attemptDate&sortDir=ASCENDING&showAll=true&editPaging=false&course_id=_3692_1&startIndex=0',
-  );
+  await page.goto(NEEDS_GRADING);
 
   await page.waitForSelector('#listContainer_databody');
 
@@ -97,48 +67,21 @@ async function init() {
 
   for (let row of rows) {
     if (!isLastAttempt(row) || shouldIgnore(row)) {
-      console.log('Skipping', row.attempt);
+      console.log('Skipping >', row.attempt);
       continue;
     }
-    var data = await readJsonAsync(JSON_FILE);
     const userKey = row.user.replace(/ /g, '');
-    const gotUser = userKey in data;
-    console.log(userKey, gotUser);
-
-    // download
-    // save the new entry
-    data[userKey] = data[userKey] || {};
-    data[userKey][row.itemName] = data[userKey][row.itemName] || {};
-
-    // Save this attemptDate
-    /*if (
-      !data[userKey][row.itemName][row.attempt] in data[userKey][row.itemName]
-    ) {*/
-    // We havent got this already
     const newTab = await browser.newPage();
     await newTab.setViewport({ width: 1500, height: 1500 });
-    await newTab.goto(
-      'https://ntnu.blackboard.com/webapps/gradebook/do/instructor/viewNeedsGrading?sortCol=attemptDate&sortDir=ASCENDING&showAll=true&editPaging=false&course_id=_3692_1&startIndex=0',
-    );
-    // Find the element
+    await newTab.goto(NEEDS_GRADING);
     await newTab.click(
       `#listContainer_databody > tr:nth-child(${row.index + 1}) > th > a`,
     );
     await downloadAssignment(newTab, row);
     newTab.close();
-    data[userKey][row.itemName][row.attempt] = row;
-    //}
-
-    await writeJsonAsync(JSON_FILE, data);
   }
 
-  /*for (let row of rows) {
-    console.log('Downloading >', row.itemName, row.user);
-    await downloadAssignment(page, row);
-  }*/
-
-  setTimeout(() => browser.close(), 100000);
-  //await browser.close();
+  await browser.close();
 }
 
 init()
